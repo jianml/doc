@@ -15,8 +15,6 @@
 |   [c1-c2]   | 匹配 c1-c2 中的任意单一字符          | `a[0-9]b`，匹配0与9之间其中一个字符，如 a0b, a1b... a9b      |
 | {s1,s2,...} | 匹配 s1 或 s2 (或更多)中的一个字符串 | `a{abc,xyz,123}b`，a与b之间只能是abc或xyz或123这三个字符串之一 |
 
-### 2. 转义字符
-
 ## 常用命令
 
 #### 操作命令
@@ -24,6 +22,8 @@
 ```shell
 # 进入目录
 cd $(ls -t | grep -e "(termloan|consumerfinance)[a-zA-Z0-9-_]*" | head -1)
+# 显示/etc/passwd中的账户[-F指定域分隔符为':',默认域分隔符是"空白键" 或 "[tab]键"]
+cat /etc/passwd | awk -F ':' '{print $1}'
 ```
 
 
