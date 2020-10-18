@@ -172,7 +172,7 @@ String name = Optional.of(outter).map(Outter::getNested)
 - flatMap 方法与 map 方法作用一致, 不过 flatMap 接收的参数 Function 要求返回一个 Optional 实例, 并且 flatMap 方法直接返回该结果, 而不对结果包装一层 Optional, 适用于 Optional 包含的值也是 Optional, 可以进行多层 Optional 的合并.
 
 ```java
-	public<U> Optional<U> flatMap(Function<? super T, Optional<U>> mapper);
+public<U> Optional<U> flatMap(Function<? super T, Optional<U>> mapper);
 ```
 
 **接下来看三个也比较重要的方法, orElse, orElseGet, orElseThrow**
