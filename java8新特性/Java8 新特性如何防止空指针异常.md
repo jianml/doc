@@ -96,6 +96,118 @@ resolve(() -> obj.getNested().getInner().getFoo());
     .ifPresent(System.out::println); // 如果不为空，最终输出 foo 的值
 ```
 
+## Optional 方法的使用
+
+JDK1.8 版本的 Optional 总共有17个方法, 除去两个私有的构造方法, 除去equals, hashCode, toString三个方法外, 我们来分析一下剩下12个 Optional 提供的方法.
+**先来看三个构造 Optional 实例的方法**
+
+- empty 方法返回一个不包含值的 Optional 实例, 注意不保证返回的 empty 是单例, 不要用 == 比较.
+
+```java
+public static<T> Optional<T> empty();
+```
+
+- 返回一个 Optional 实例, 代表指定的非空值, 如果传入 null 会立刻抛出空指针异常
+
+```java
+public static <T> Optional<T> of(T value);
+```
+
+- 返回一个 Optional 实例, 如果指定非空值则实例包含非空值, 如果传入 null 返回不包含值的 empty
+
+```java
+public static <T> Optional<T> ofNullable(T value);
+```
+
+**下面来看 Optional 中两个让人唾弃的方法, 不推荐使用**
+
+- isPresent 用来判断实例是否包含值, 如果不包含非空值返回 false, 否则返回 true
+
+```java
+public boolean isPresent();
+```
+
+- get 方法, 如果实例包含值则返回当前值, 否则抛出 NoSushElementException 异常.
+
+```java
+public T get();
+```
+
+为什么不推荐调用上面两个方法呢, 因为容易写出下方代码, 比原先判断 if null 的代码还脏.
+
+```java
+Integer result;
+if (optional.isPresent()) {
+    result = optional.get();
+}
+```
+
+**接下里我们来看 Optional 中真正有用的7个方法**
+
+- ifPresent 方法作用是当实例包含值时, 来执行传入的 Consumer, 比如调用一些其他方法.
+
+```java
+public void ifPresent(Consumer<? super T> consumer);
+```
+
+- filter 方法用于过滤不符合条件的值, 接收一个 Predicate 参数, 如果符合条件返回代表值的 Optional 实例, 否则返回 empty
+
+```java
+public Optional<T> filter(Predicate<? super T> predicate)
+```
+
+- map 方法是链式调用避免空指针的核心方法, 当实例包含值时, 对值执行传入的 Function 逻辑, 并返回一个代表结果值的新的 Optional 实例. 这也意味着返回的结果依旧可以继续调用 map 方法, 而不需要空指针判断.方法签名以及示例如下:
+
+```java
+public<U> Optional<U> map(Function<? super T, ? extends U> mapper);
+// 如果 outer 包含的 nested 对象或者 nested 包含的 inner 对象为空
+// 传统方式 每一个 get 方法都要进行空判断, 否则有可能抛出空指针异常
+// 用 Optional map 实现链式调用, 而不需要判断 null
+// 任何一层对象为 null 时, 变量获得的都是指定默认值 null
+String name = Optional.of(outter).map(Outter::getNested)
+    .map(Nested::getInner)
+    .map(Inner::getName).orElse(null);
+```
+
+- flatMap 方法与 map 方法作用一致, 不过 flatMap 接收的参数 Function 要求返回一个 Optional 实例, 并且 flatMap 方法直接返回该结果, 而不对结果包装一层 Optional, 适用于 Optional 包含的值也是 Optional, 可以进行多层 Optional 的合并.
+
+```java
+	public<U> Optional<U> flatMap(Function<? super T, Optional<U>> mapper);
+```
+
+**接下来看三个也比较重要的方法, orElse, orElseGet, orElseThrow**
+
+- 如果实例包含值, 那么返回这个值, 否则返回指定的默认值, 如null
+
+```java
+public T orElse(T other);
+```
+
+- 如果实例包含值, 返回这个值, 否则调用传入的 Supplier 参数生产一个值.
+
+```java
+public T orElseGet(Supplier<? extends T> other);
+```
+
+- 如果实例不包含值, 调用传入的 Supplier 参数, 生成一个异常实例并抛出.这个方法通常与全局异常处理器一起使用, 当参数或者其他情况获取不到值时, 抛出自定义异常, 由异常处理器处理成通用返回结果, 返回给前端.
+
+```java
+public <X extends Throwable> T orElseThrow(Supplier<? extends X> exceptionSupplier);
+```
+
+## 实际开发中 Optional 的应用
+
+在使用 Repository 操作 Es 时, findById 通过 id 查询数据库记录, 返回结果为 Optional, 此时无需 if null 判断, 利用 orElseThrow , 不存在就抛出异常, 配合异常处理器渲染通用结果和错误提示信息返回给前端处理.
+
+```java
+Optional<ApiManager> byId = apiManagerRepository
+		.findById(apiManagerDTO.getId());
+ApiManager oldApiManager = byId
+		.orElseThrow(
+		() -> new SysException(SysCodeEnum.API_MANAGER_DOES_NOT_EXIST)
+		);
+```
+
 ## 最后
 
 你需要知道的是，上面这两个解决方案并没传统的 `null` 检查性能那么高效。但在绝大部分业务场景下，舍弃那么一丢丢的性能来方便编码，是完全可取， 除非是那种对性能有严格要求的场景，我们才不建议使用。
